@@ -168,21 +168,33 @@ function drawReplay(deltaTime) {
 
     // Draw player
     const playerFrame = frame.player;
+    const playerBodyOrFallbackImg = playerFrame.avatarImage ? playerBodyImg : playerImg;
+
     if (playerFrame.avatarImage) {
-        replayCtx.save();
-        const centerX = playerFrame.x + playerFrame.width / 2;
-        const centerY = playerFrame.y + playerFrame.height / 2;
-        const radius = playerFrame.width * 0.3;
+        let avatarToDraw = null;
+        if (typeof playerFrame.avatarImage === 'string') {
+            avatarToDraw = userAvatarImg; // Assume userAvatarImg is the loaded image for this url
+        } else {
+            avatarToDraw = playerFrame.avatarImage; // It's an image object
+        }
 
-        replayCtx.beginPath();
-        replayCtx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
-        replayCtx.closePath();
-        replayCtx.clip();
+        if (avatarToDraw && avatarToDraw.complete) {
+            replayCtx.save();
+            const centerX = playerFrame.x + playerFrame.width / 2;
+            const centerY = playerFrame.y + playerFrame.height / 2;
+            const radius = playerFrame.width * 0.3;
 
-        replayCtx.drawImage(playerFrame.avatarImage, playerFrame.x, playerFrame.y, playerFrame.width, playerFrame.height);
-        replayCtx.restore();
+            replayCtx.beginPath();
+            replayCtx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
+            replayCtx.closePath();
+            replayCtx.clip();
+
+            const avatarSize = radius * 2;
+            replayCtx.drawImage(avatarToDraw, centerX - radius, centerY - radius, avatarSize, avatarSize);
+            replayCtx.restore();
+        }
     }
-    replayCtx.drawImage(playerFrame.image, playerFrame.x, playerFrame.y, playerFrame.width, playerFrame.height);
+    replayCtx.drawImage(playerBodyOrFallbackImg, playerFrame.x, playerFrame.y, playerFrame.width, playerFrame.height);
 
     replayCtx.restore();
 }

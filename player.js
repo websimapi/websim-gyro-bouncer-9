@@ -58,7 +58,9 @@ export class Player {
             ctx.closePath();
             ctx.clip();
             
-            ctx.drawImage(this.avatarImage, this.x, this.y, this.width, this.height);
+            // Draw the avatar image centered and scaled to fill the circular clip area.
+            const avatarSize = radius * 2;
+            ctx.drawImage(this.avatarImage, centerX - radius, centerY - radius, avatarSize, avatarSize);
             
             ctx.restore();
         }
