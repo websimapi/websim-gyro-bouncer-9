@@ -59,9 +59,7 @@ async function loadImageWithProxies(url) {
         const proxyUrl = proxy + url;
         try {
             const img = new Image();
-            if (proxy) { // crossOrigin is not needed for direct load if server has CORS, but required for proxies
-                img.crossOrigin = "anonymous";
-            }
+            img.crossOrigin = "anonymous"; // Always set for cross-origin images to prevent canvas tainting
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
                 img.onerror = reject;
@@ -101,7 +99,8 @@ async function init() {
     }
 
 
-    player = new Player(canvas.width / 2, canvas.height - 100, userAvatarImg, userAvatarImg);
+    player = new Player(canvas.width / 2, canvas.height - 100, userAvatarImg);
+    player.image = userAvatarImg; // Ensure player's image is the loaded avatar
     platformManager = new PlatformManager(canvas.width, canvas.height, platformImg);
     platformManager.generateInitialPlatforms();
     replay = new Replay();

@@ -4,7 +4,7 @@ const HORIZONTAL_SPEED = 12; // multiplier for tilt
 const MAX_HORIZONTAL_SPEED = 400; // pixels/second
 
 export class Player {
-    constructor(x, y, image, avatarImage = null) {
+    constructor(x, y, image) {
         this.width = 50;
         this.height = 50;
         this.x = x - this.width / 2;
@@ -12,7 +12,6 @@ export class Player {
         this.vx = 0;
         this.vy = 0;
         this.image = image;
-        this.avatarImage = avatarImage;
     }
 
     update(tilt, platforms, canvasWidth, deltaTime) {
@@ -46,8 +45,7 @@ export class Player {
     }
 
     draw(ctx) {
-        if (this.avatarImage && this.avatarImage.complete) {
-            // The avatar is the entire player
+        if (this.image && this.image.complete) {
             ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         }
         // Do not draw anything if the image is not available.
