@@ -11,15 +11,12 @@ export class Replay {
     recordFrame(player, platforms, cameraY, deltaTime) {
         if (this.isPlaying) return;
 
-        let avatarData = player.avatarImage ? player.avatarImage.src : null;
-
         const frameData = {
             player: { 
                 x: player.x, 
                 y: player.y, 
                 width: player.width, 
                 height: player.height,
-                avatarImage: avatarData
             },
             platforms: platforms.map(p => ({ x: p.x, y: p.y, width: p.width, height: p.height })),
             cameraY: cameraY,

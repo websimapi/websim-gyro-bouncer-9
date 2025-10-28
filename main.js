@@ -23,12 +23,8 @@ let score = 0;
 let gameState = 'start';
 let lastTime = 0;
 
-const playerImg = new Image();
-playerImg.src = 'player.png';
 const platformImg = new Image();
 platformImg.src = 'platform.png';
-const playerBodyImg = new Image();
-playerBodyImg.src = 'player_body.png';
 
 let userAvatarImg = null;
 
@@ -52,6 +48,34 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+async function loadImageWithProxies(url) {
+    const proxies = [
+        '', // Direct attempt first
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+    ];
+
+    for (const proxy of proxies) {
+        const proxyUrl = proxy + url;
+        try {
+            const img = new Image();
+            if (proxy) { // crossOrigin is not needed for direct load if server has CORS, but required for proxies
+                img.crossOrigin = "anonymous";
+            }
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = proxyUrl;
+            });
+            console.log(`Successfully loaded image from: ${proxyUrl}`);
+            return img;
+        } catch (error) {
+            console.warn(`Failed to load image from: ${proxyUrl}`, error);
+        }
+    }
+    return null;
+}
+
 async function init() {
     // Load avatar if not already loaded
     if (!userAvatarImg) {
@@ -60,27 +84,24 @@ async function init() {
             await room.initialize();
             const client = room.peers[room.clientId];
             if (client && client.avatarUrl) {
-                userAvatarImg = new Image();
-                userAvatarImg.crossOrigin = "anonymous";
-                await new Promise((resolve, reject) => {
-                    userAvatarImg.onload = resolve;
-                    userAvatarImg.onerror = () => {
-                        console.warn("Could not load avatar. Falling back to default.");
-                        userAvatarImg = null;
-                        resolve(); // Resolve anyway to start the game
-                    };
-                    userAvatarImg.src = client.avatarUrl;
-                });
+                userAvatarImg = await loadImageWithProxies(client.avatarUrl);
+                if (!userAvatarImg) {
+                    alert("Your avatar could not be loaded. Please try again or check your profile picture.");
+                    return; // Stop initialization
+                }
+            } else {
+                alert("You don't seem to have a profile picture. Please set one to play.");
+                return; // Stop initialization
             }
         } catch (e) {
-            console.error("Websim socket failed to initialize, using default player:", e);
-            userAvatarImg = null;
+            console.error("Websim socket failed to initialize, cannot fetch avatar:", e);
+            alert("Could not connect to get your profile. Please refresh and try again.");
+            return; // Stop initialization
         }
     }
 
 
-    let playerImage = userAvatarImg ? playerBodyImg : playerImg;
-    player = new Player(canvas.width / 2, canvas.height - 100, playerImage, userAvatarImg);
+    player = new Player(canvas.width / 2, canvas.height - 100, userAvatarImg, userAvatarImg);
     platformManager = new PlatformManager(canvas.width, canvas.height, platformImg);
     platformManager.generateInitialPlatforms();
     replay = new Replay();
@@ -172,31 +193,9 @@ function drawReplay(deltaTime) {
 
     // Draw player
     const playerFrame = frame.player;
-    const playerBodyOrFallbackImg = playerFrame.avatarImage ? playerBodyImg : playerImg;
-
-    if (playerFrame.avatarImage) {
-        let avatarToDraw = null;
-        if (typeof playerFrame.avatarImage === 'string') {
-            avatarToDraw = userAvatarImg; // Assume userAvatarImg is the loaded image for this url
-        }
-
-        if (avatarToDraw && avatarToDraw.complete) {
-            replayCtx.save();
-            const centerX = playerFrame.x + playerFrame.width / 2;
-            const centerY = playerFrame.y + playerFrame.height / 2;
-            const radius = playerFrame.width * 0.3;
-
-            replayCtx.beginPath();
-            replayCtx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
-            replayCtx.closePath();
-            replayCtx.clip();
-
-            const avatarSize = radius * 2;
-            replayCtx.drawImage(avatarToDraw, centerX - radius, centerY - radius, avatarSize, avatarSize);
-            replayCtx.restore();
-        }
+    if (userAvatarImg && userAvatarImg.complete) {
+        replayCtx.drawImage(userAvatarImg, playerFrame.x, playerFrame.y, playerFrame.width, playerFrame.height);
     }
-    replayCtx.drawImage(playerBodyOrFallbackImg, playerFrame.x, playerFrame.y, playerFrame.width, playerFrame.height);
 
     replayCtx.restore();
 }

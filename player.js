@@ -46,25 +46,10 @@ export class Player {
     }
 
     draw(ctx) {
-        if (this.avatarImage) {
-            ctx.save();
-            // Draw avatar clipped to a circle
-            const centerX = this.x + this.width / 2;
-            const centerY = this.y + this.height / 2;
-            const radius = this.width * 0.3; // Approx size of head hole
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
-            ctx.closePath();
-            ctx.clip();
-            
-            // Draw the avatar image centered and scaled to fill the circular clip area.
-            const avatarSize = radius * 2;
-            ctx.drawImage(this.avatarImage, centerX - radius, centerY - radius, avatarSize, avatarSize);
-            
-            ctx.restore();
+        if (this.avatarImage && this.avatarImage.complete) {
+            // The avatar is the entire player
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         }
-        
-        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        // Do not draw anything if the image is not available.
     }
 }
