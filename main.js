@@ -8,6 +8,7 @@ const ctx = canvas.getContext('2d');
 const replayCanvas = document.getElementById('replay-canvas');
 const replayCtx = replayCanvas.getContext('2d');
 
+const loadingScreen = document.getElementById('loading-screen');
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const startButton = document.getElementById('start-button');
@@ -27,12 +28,37 @@ const platformImg = new Image();
 platformImg.src = 'platform.png';
 
 let userAvatarImg = null;
+let avatarLoadFailed = false;
 
 const controls = new Controls();
 
-function main() {
-    // Set initial UI state and wait for start button
+async function preload() {
+    uiState('loading');
+    try {
+        const room = new WebsimSocket();
+        await room.initialize();
+        const client = room.peers[room.clientId];
+        if (client && client.avatarUrl) {
+            userAvatarImg = await loadImageWithProxies(client.avatarUrl);
+            if (!userAvatarImg) {
+                avatarLoadFailed = true;
+                alert("Your avatar could not be loaded. Please try again or check your profile picture.");
+            }
+        } else {
+            avatarLoadFailed = true;
+            alert("You don't seem to have a profile picture. Please set one to play.");
+        }
+    } catch (e) {
+        avatarLoadFailed = true;
+        console.error("Websim socket failed to initialize, cannot fetch avatar:", e);
+        alert("Could not connect to get your profile. Please refresh and try again.");
+    }
     uiState('start');
+}
+
+function main() {
+    // Preload assets and then show start screen
+    preload();
     requestAnimationFrame(gameLoop);
 }
 
@@ -75,29 +101,15 @@ async function loadImageWithProxies(url) {
 }
 
 async function init() {
-    // Load avatar if not already loaded
-    if (!userAvatarImg) {
-         try {
-            const room = new WebsimSocket();
-            await room.initialize();
-            const client = room.peers[room.clientId];
-            if (client && client.avatarUrl) {
-                userAvatarImg = await loadImageWithProxies(client.avatarUrl);
-                if (!userAvatarImg) {
-                    alert("Your avatar could not be loaded. Please try again or check your profile picture.");
-                    return; // Stop initialization
-                }
-            } else {
-                alert("You don't seem to have a profile picture. Please set one to play.");
-                return; // Stop initialization
-            }
-        } catch (e) {
-            console.error("Websim socket failed to initialize, cannot fetch avatar:", e);
-            alert("Could not connect to get your profile. Please refresh and try again.");
-            return; // Stop initialization
-        }
+    if (avatarLoadFailed) {
+        alert("Cannot start the game because your avatar failed to load. Please refresh the page.");
+        return;
     }
 
+    if (!userAvatarImg) {
+        alert("Avatar not loaded yet. Please wait.");
+        return;
+    }
 
     player = new Player(canvas.width / 2, canvas.height - 100, userAvatarImg);
     player.image = userAvatarImg; // Ensure player's image is the loaded avatar
@@ -117,11 +129,14 @@ async function init() {
 }
 
 function uiState(state) {
+    loadingScreen.classList.add('hidden');
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     scoreDisplay.classList.add('hidden');
 
-    if (state === 'start') {
+    if (state === 'loading') {
+        loadingScreen.classList.remove('hidden');
+    } else if (state === 'start') {
         startScreen.classList.remove('hidden');
     } else if (state === 'game') {
         scoreDisplay.classList.remove('hidden');
