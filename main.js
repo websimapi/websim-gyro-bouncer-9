@@ -34,29 +34,7 @@ let userAvatarImg = null;
 
 const controls = new Controls();
 
-async function main() {
-    try {
-        const room = new WebsimSocket();
-        await room.initialize();
-        const client = room.peers[room.clientId];
-        if (client && client.avatarUrl) {
-            userAvatarImg = new Image();
-            userAvatarImg.crossOrigin = "anonymous";
-            await new Promise((resolve, reject) => {
-                userAvatarImg.onload = resolve;
-                userAvatarImg.onerror = () => {
-                    console.warn("Could not load avatar. Falling back to default.");
-                    userAvatarImg = null;
-                    resolve(); // Resolve anyway to start the game
-                };
-                userAvatarImg.src = client.avatarUrl;
-            });
-        }
-    } catch (e) {
-        console.error("Websim socket failed to initialize, using default player:", e);
-        userAvatarImg = null;
-    }
-    
+function main() {
     // Set initial UI state and wait for start button
     uiState('start');
     requestAnimationFrame(gameLoop);
@@ -74,7 +52,33 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-function init() {
+async function init() {
+    // Load avatar if not already loaded
+    if (!userAvatarImg) {
+         try {
+            const room = new WebsimSocket();
+            await room.initialize();
+            const client = room.peers[room.clientId];
+            if (client && client.avatarUrl) {
+                userAvatarImg = new Image();
+                userAvatarImg.crossOrigin = "anonymous";
+                await new Promise((resolve, reject) => {
+                    userAvatarImg.onload = resolve;
+                    userAvatarImg.onerror = () => {
+                        console.warn("Could not load avatar. Falling back to default.");
+                        userAvatarImg = null;
+                        resolve(); // Resolve anyway to start the game
+                    };
+                    userAvatarImg.src = client.avatarUrl;
+                });
+            }
+        } catch (e) {
+            console.error("Websim socket failed to initialize, using default player:", e);
+            userAvatarImg = null;
+        }
+    }
+
+
     let playerImage = userAvatarImg ? playerBodyImg : playerImg;
     player = new Player(canvas.width / 2, canvas.height - 100, playerImage, userAvatarImg);
     platformManager = new PlatformManager(canvas.width, canvas.height, platformImg);
@@ -174,8 +178,6 @@ function drawReplay(deltaTime) {
         let avatarToDraw = null;
         if (typeof playerFrame.avatarImage === 'string') {
             avatarToDraw = userAvatarImg; // Assume userAvatarImg is the loaded image for this url
-        } else {
-            avatarToDraw = playerFrame.avatarImage; // It's an image object
         }
 
         if (avatarToDraw && avatarToDraw.complete) {

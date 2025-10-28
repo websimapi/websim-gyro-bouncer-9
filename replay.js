@@ -11,10 +11,7 @@ export class Replay {
     recordFrame(player, platforms, cameraY, deltaTime) {
         if (this.isPlaying) return;
 
-        let avatarData = player.avatarImage;
-        if (avatarData instanceof HTMLImageElement) {
-            avatarData = avatarData.src;
-        }
+        let avatarData = player.avatarImage ? player.avatarImage.src : null;
 
         const frameData = {
             player: { 
